@@ -1,4 +1,15 @@
 <resources>
     <string name="app_name">Mind Garden</string>
     <string name="str_begin">Begin</string>
+    <string name="str_pause">Pause</string>
+    <string name="str_set_interval">Set Interval</string>
+
+    <string name="time_meditated_key">time_meditated_key</string>
+    <integer name="time_meditated_default">0</integer>
+
+    <string name="current_streak_key">current_streak_key</string>
+    <integer name="current_streak_default">0</integer>
+
+    <string name="last_day_meditated_key">last_day_meditated_key</string>
+    <integer name="last_day_meditated_default">-999</integer>
 </resources>

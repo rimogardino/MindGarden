@@ -1,30 +1,26 @@
 package org.labs.musaka.mindgarden
 
 import android.annotation.SuppressLint
-import android.app.ActionBar
 import android.arch.persistence.room.Room
-import android.graphics.Color
-import android.media.Image
+import android.content.Context
 import android.media.MediaPlayer
 import android.os.CountDownTimer
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
-import android.support.constraint.ConstraintSet
 import android.util.Log
 import android.view.View
-import android.view.ViewGroup
-import android.widget.Button
 import android.widget.ImageView
-import android.widget.NumberPicker
 import kotlinx.android.synthetic.main.activity_main.*
+import java.text.SimpleDateFormat
 
 import java.util.*
 
 
 class MainActivity : AppCompatActivity() {
 
-
+    private val startOfDayTime = 6
     private var isTimerRunning = false
+    private var prepTimer: CountDownTimer? = null
     private var countDownTimer: CountDownTimer? = null
     private var timeLeftInMilliSeconds: Long = 0
     private var plantDAO: PlantDAO? = null
@@ -48,40 +44,88 @@ class MainActivity : AppCompatActivity() {
         plantDAO = plantdatabase.allowMainThreadQueries().fallbackToDestructiveMigration().build().plantDao()
 
 
-
+        showPlants()
 
 
     }
 
-    private fun createFlower() {
-        //This fun shound't do all of these things, should be split so that you can call a single funstion to add the plants from the database
-        var rand = Random()
-        var xi = rand.nextInt(cl_garden.width - 150)
-        var yi = rand.nextInt(cl_garden.height - 150)
+
+    private fun addStats(timeMeditatedInMilliseconds: Long) {
 
 
-        var newPlant = PlantModel(PlantModel.pTypeDefault,PlantModel.healthGreat,150,150,xi,yi)
+        val sharedPref = this.getPreferences(Context.MODE_PRIVATE)
+        val tMeditatedUntilNow = sharedPref.getLong(getString(R.string.time_meditated_key),resources.getInteger(R.integer.time_meditated_default).toLong())
+        val currentStreak = sharedPref.getInt(getString(R.string.current_streak_key),resources.getInteger(R.integer.current_streak_default))
+        val lastDayMeditated = sharedPref.getLong(getString(R.string.last_day_meditated_key),resources.getInteger(R.integer.last_day_meditated_default).toLong())
+
+        val sharedPrefEditor = sharedPref.edit()
+
+        sharedPrefEditor.putLong(getString(R.string.time_meditated_key),(tMeditatedUntilNow+timeMeditatedInMilliseconds))
+
+
+
+        val currentDate =  Calendar.getInstance().timeInMillis
+        //var simpleHourFormater = SimpleDateFormat("hh")
+
+        val newSession = currentDate > lastDayMeditated //todo this check is total sh*t, fix it
+        if (newSession) {
+            sharedPrefEditor.putInt(getString(R.string.current_streak_key),currentStreak + 1)
+            sharedPrefEditor.putLong(getString(R.string.last_day_meditated_key), currentDate)
+            showPlant(createPlant())
+        }
+
+        sharedPrefEditor.apply()
+
+
+    }
+
+
+    private fun showPlants() {
+        val plantList = plantDAO!!.getAllPlants()
+
+        for (plant in plantList) {
+            showPlant(plant)
+
+        }
+
+    }
+
+    private fun createPlant(): PlantModel {
+        //This fun shound't do all of these things, should be split so that you can call a single function to add the plants from the database
+        val rand = Random()
+
+        val pType = rand.nextInt(PlantModel.pTypes.size)
+
+        val pWidth = rand.nextInt(201) + 100
+        val pHeight = rand.nextInt(201) + 100
+
+        val xi = rand.nextInt(cl_garden.width - 150)
+        val yi = rand.nextInt(cl_garden.height - 150)
+
+
+        val newPlant = PlantModel(pType = pType,pWidth = pWidth,pHeight = pHeight,xPos = xi,yPos = yi)
+
         plantDAO?.insertPlant(newPlant)
 
-        var testImageView = ImageView(this)
+        Log.d(TAG,"Coordinates chosen: Xi: ${newPlant.xPos} Topi: ${newPlant.yPos}")
 
-        var params = android.support.constraint.ConstraintLayout.LayoutParams(newPlant.pWidth, newPlant.pHeight)
+        return newPlant
+    }
+
+
+    private fun showPlant(plantModel: PlantModel) {
+        val testImageView = ImageView(this)
+
+        val params = android.support.constraint.ConstraintLayout.LayoutParams(plantModel.pWidth, plantModel.pHeight)
 
         testImageView.id = View.generateViewId()
         testImageView.setImageResource(R.mipmap.flower)
         testImageView.layoutParams = params
-        testImageView.x = newPlant.xPos.toFloat()
-        testImageView.y = newPlant.yPos.toFloat()
+        testImageView.x = plantModel.xPos.toFloat()
+        testImageView.y = plantModel.yPos.toFloat()
 
 
         cl_garden.addView(testImageView,params)
-
-        Log.d(TAG,"Coordinates chosen: Xi: ${newPlant.xPos} Topi: ${newPlant.yPos}")
-
-
-        var plnatList = plantDAO?.getAllPlants()
-
-        Log.d(TAG,plnatList.toString())
 
     }
 
@@ -97,15 +141,11 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun startTimer() {
-        createFlower()
+        val mediaPlayerStart = MediaPlayer.create(this,R.raw.short_quail_chirps)
+        val mediaPlayerEnd = MediaPlayer.create(this,R.raw.short_quail_chirps_type_2)
 
-        var mediaPlayer = MediaPlayer.create(this,R.raw.common_quail_excited_chirping)
-
-        mediaPlayer.start()
-
-        /*
         val userTimeInMilliseconds = (np_time_setter!!.value * 60 * 1000).toLong()
-        button_start!!.text = "Pause"
+
         isTimerRunning = true
 
         countDownTimer = object : CountDownTimer(userTimeInMilliseconds, 1000) {
@@ -116,29 +156,46 @@ class MainActivity : AppCompatActivity() {
 
                 timeLeftInMilliSeconds = millisUntilFinished
 
-                np_time_setter!!.value = numberPickerPosition
+                np_time_setter!!.value = numberPickerPosition + 1
 
             }
 
             override fun onFinish() {
-                button_start!!.text = "Start"
+                addStats(userTimeInMilliseconds)
+                np_time_setter!!.value = 0
+                button_start!!.text = getString(R.string.str_begin)
                 isTimerRunning = false
+                mediaPlayerEnd.start()
             }
+        }
+
+
+        prepTimer = object  : CountDownTimer(5000,1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                button_start!!.text = ((millisUntilFinished/1000) + 1).toString()
+            }
+
+            override fun onFinish() {
+                button_start!!.text = getString(R.string.str_pause)
+                (countDownTimer as CountDownTimer).start()
+                mediaPlayerStart.start()
+            }
+
         }.start()
-        */
 
     }
 
 
     private fun pauseTimer() {
-        button_start!!.text = "Start"
+        button_start!!.text = getString(R.string.str_begin)
         isTimerRunning = false
+        prepTimer!!.cancel()
         countDownTimer!!.cancel()
     }
 
     companion object {
 
-        private val TAG = "MainActivity"
+        private const val TAG = "MainActivity"
     }
 
 

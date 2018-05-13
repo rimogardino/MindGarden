@@ -1,85 +1,119 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:app="http://schemas.android.com/apk/res-auto"
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_height="match_parent"
     android:layout_width="match_parent"
-    android:orientation="vertical"
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:background="@android:color/holo_green_dark"
-    android:weightSum="5">
+    android:layout_height="match_parent"
+    android:background="#5a8a14">
 
     <android.support.constraint.ConstraintLayout
         android:id="@+id/cl_garden"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_height="320dp"
 
-        android:layout_weight="3"
+
         android:background="@android:color/holo_blue_light">
 
+
+        <ImageView
+            android:id="@+id/iv_grass_background"
+
+            android:layout_width="0dp"
+            android:layout_height="100dp"
+            android:adjustViewBounds="true"
+            android:scaleType="centerCrop"
+            android:src="@mipmap/ic_launcher_grass_foreground"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
 
 
     </android.support.constraint.ConstraintLayout>
 
 
-    <LinearLayout
-        android:layout_width="match_parent"
+    <TextView
+        android:id="@+id/textView4"
+        android:layout_width="117dp"
+        android:layout_height="33dp"
+
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="56dp"
+        android:gravity="center"
+        android:text="Time:"
+        android:textSize="25sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toStartOf="@+id/np_time_setter"
+        app:layout_constraintHorizontal_bias="0.666"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/cl_garden" />
+
+    <NumberPicker
+        android:id="@+id/np_time_setter"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_marginTop="30dp"
+
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.501"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/cl_garden" />
+
+
+    <TextView
+        android:id="@+id/textView3"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="56dp"
+        android:gravity="center"
+        android:text="minutes"
+        android:textSize="25sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toEndOf="@+id/np_time_setter"
+        app:layout_constraintTop_toBottomOf="@+id/cl_garden" />
+
+
+    <Button
+        android:id="@+id/button_set_interval"
+
+        android:layout_width="wrap_content"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="horizontal"
-        android:weightSum="3"
-        >
+        android:layout_gravity="right"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="8dp"
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:text="Time:"
-            android:textStyle="bold"
-            android:textSize="25sp"
-            android:layout_weight="1"
-            android:gravity="center"
-
-            />
-
-        <NumberPicker
-            android:id="@+id/np_time_setter"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:scrollbarSize="5dp"
-            android:layout_weight="1"
-            />
-
-
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:text="minutes"
-            android:textStyle="bold"
-            android:textSize="25sp"
-            android:layout_weight="1"
-            android:gravity="center"
-            />
-
-    </LinearLayout>
-
-
-
+        android:padding="8dp"
+        android:text="@string/str_set_interval"
+        android:textAllCaps="false"
+        android:textSize="25sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@+id/button_start"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 
     <Button
         android:id="@+id/button_start"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_marginBottom="8dp"
+
+        android:padding="8dp"
         android:text="@string/str_begin"
-        android:background="@android:color/holo_green_light"
-        android:textStyle="bold"
+        android:textAllCaps="false"
         android:textSize="25sp"
-        />
+
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
 
 
 
 
 
-</LinearLayout>
+</android.support.constraint.ConstraintLayout>

@@ -7,7 +7,8 @@ import android.arch.persistence.room.PrimaryKey
 data class PlantModel (
 
                        var pType: Int,
-                       var pHealth: Int = 3,
+                       var pLifeStage: Int = pLifeStageDefault,
+                       var pHealth: Int = pHealthDefault,
                        var pWidth: Int,
                        var pHeight: Int,
                        var xPos: Int,
@@ -17,10 +18,13 @@ data class PlantModel (
 
 
     companion object {
-        final val healthGreat = 3
-        final val healthGood = 2
-        final val healthBad = 1
+        final val pHealthDefault = 0
+        final val pHealthStates = arrayOf(0,1,2)
+        final val pLifeStageDefault = 0
+        final val pLifeStages = arrayOf(0,1,2)
+
         final val pTypeDefault = 0
+        final val pTypes = arrayOf(0,1,2,3)
     }
 
 

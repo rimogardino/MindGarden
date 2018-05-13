@@ -34,9 +34,9 @@
                                   <option name="values">
                                     <map>
                                       <entry key="backgroundLayerName" value="ic_launcher_background" />
-                                      <entry key="foregroundImage" value="$PROJECT_DIR$/app/src/main/res/raw/flower.png" />
-                                      <entry key="foregroundLayerName" value="ic_launcher_foreground" />
-                                      <entry key="outputName" value="flower" />
+                                      <entry key="foregroundImage" value="$PROJECT_DIR$/app/src/main/res/raw/grass_small_file.png" />
+                                      <entry key="foregroundLayerName" value="ic_launcher_grass_foreground" />
+                                      <entry key="outputName" value="grass" />
                                     </map>
                                   </option>
                                 </PersistentState>
