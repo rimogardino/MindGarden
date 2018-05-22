@@ -46,29 +46,43 @@ class MainActivity : AppCompatActivity() {
 
         showPlants()
 
-
     }
 
 
     private fun addStats(timeMeditatedInMilliseconds: Long) {
 
-
         val sharedPref = this.getPreferences(Context.MODE_PRIVATE)
-        val tMeditatedUntilNow = sharedPref.getLong(getString(R.string.time_meditated_key),resources.getInteger(R.integer.time_meditated_default).toLong())
+
         val currentStreak = sharedPref.getInt(getString(R.string.current_streak_key),resources.getInteger(R.integer.current_streak_default))
-        val lastDayMeditated = sharedPref.getLong(getString(R.string.last_day_meditated_key),resources.getInteger(R.integer.last_day_meditated_default).toLong())
+        val lastDate = sharedPref.getLong(getString(R.string.last_day_meditated_key),resources.getInteger(R.integer.last_day_meditated_default).toLong())
+
+
+        val currentDate =  Calendar.getInstance().timeInMillis
+
 
         val sharedPrefEditor = sharedPref.edit()
 
+        val tMeditatedUntilNow = sharedPref.getLong(getString(R.string.time_meditated_key),resources.getInteger(R.integer.time_meditated_default).toLong())
         sharedPrefEditor.putLong(getString(R.string.time_meditated_key),(tMeditatedUntilNow+timeMeditatedInMilliseconds))
 
 
 
-        val currentDate =  Calendar.getInstance().timeInMillis
-        //var simpleHourFormater = SimpleDateFormat("hh")
 
-        val newSession = currentDate > lastDayMeditated //todo this check is total sh*t, fix it
-        if (newSession) {
+
+        var simpleHourFormater = SimpleDateFormat("yy-mm-dd-hh")
+
+        val lastDateFormated = simpleHourFormater.format(lastDate).split("-")
+        val currentDateFormated = simpleHourFormater.format(currentDate).split("-")
+
+        val yearGE = currentDateFormated[0].toInt() >= lastDateFormated[0].toInt()
+        val monthGE = currentDateFormated[1].toInt() >= lastDateFormated[1].toInt()
+        val nextDay = currentDateFormated[2].toInt() > lastDateFormated[2].toInt()
+        val hasDayBegan = currentDateFormated[3].toInt() > 6
+
+        //Log.d(TAG,"New session: this date: $currentDateFormated lastdate: $lastDate streak: $currentStreak time meditated: $tMeditatedUntilNow")
+
+        if ((yearGE and monthGE and nextDay and hasDayBegan) or lastDate.equals(-999.toLong())) {
+            Log.d(TAG,"New session recorded: date: $currentDateFormated streak: $currentStreak time meditated: $tMeditatedUntilNow")
             sharedPrefEditor.putInt(getString(R.string.current_streak_key),currentStreak + 1)
             sharedPrefEditor.putLong(getString(R.string.last_day_meditated_key), currentDate)
             showPlant(createPlant())
@@ -151,8 +165,6 @@ class MainActivity : AppCompatActivity() {
         countDownTimer = object : CountDownTimer(userTimeInMilliseconds, 1000) {
             override fun onTick(millisUntilFinished: Long) {
                 val numberPickerPosition = (millisUntilFinished / 1000 / 60).toInt()
-
-                Log.d(TAG, "onTick: $numberPickerPosition")
 
                 timeLeftInMilliSeconds = millisUntilFinished
 
