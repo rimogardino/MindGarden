@@ -2,6 +2,7 @@ package org.labs.musaka.mindgarden
 
 import android.arch.persistence.room.*
 
+
 @Dao
 interface PlantDAO {
 
@@ -13,5 +14,8 @@ interface PlantDAO {
 
     @Query ("SELECT * FROM tb_almanac")
     fun getAllPlants(): List<PlantModel>
+
+    @Update ()
+    fun updatePlant(plantModel: PlantModel) : Int
 
 }

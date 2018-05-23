@@ -18,7 +18,7 @@ data class PlantModel (
 
 
     companion object {
-        final val pHealthDefault = 0
+        final val pHealthDefault = 2
         final val pHealthStates = arrayOf(0,1,2)
         final val pLifeStageDefault = 0
         final val pLifeStages = arrayOf(0,1,2)

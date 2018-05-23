@@ -16,10 +16,13 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 
-class MainActivity : AppCompatActivity() {
 
-    private val startOfDayTime = 6
+class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDateFormat("yy-DD-HH")) : AppCompatActivity() {
+
+    private val startOfDayTime = 6001
     private var isTimerRunning = false
+
+    private val rand = Random()
     private var prepTimer: CountDownTimer? = null
     private var countDownTimer: CountDownTimer? = null
     private var timeLeftInMilliSeconds: Long = 0
@@ -28,6 +31,8 @@ class MainActivity : AppCompatActivity() {
             this,
             PlantDatabase::class.java,
             "plantDatabase")
+
+
 
     @SuppressLint("PrivateResource")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,20 +49,47 @@ class MainActivity : AppCompatActivity() {
         plantDAO = plantdatabase.allowMainThreadQueries().fallbackToDestructiveMigration().build().plantDao()
 
 
+        val daysFromLastSession = daysFromLastSession()
+
+        val sharedPref =  this.getPreferences(Context.MODE_PRIVATE)
+        val sharedPrefEditor = sharedPref.edit()
+
+        if (daysFromLastSession >= 2) {
+            sharedPrefEditor.putInt(getString(R.string.current_streak_key),1)
+            degradePlants(daysFromLastSession - 1)
+
+
+        }
+
+        sharedPrefEditor.apply()
+
+
+
         showPlants()
+
+
 
     }
 
 
-    private fun addStats(timeMeditatedInMilliseconds: Long) {
-
-        val sharedPref = this.getPreferences(Context.MODE_PRIVATE)
-
-        val currentStreak = sharedPref.getInt(getString(R.string.current_streak_key),resources.getInteger(R.integer.current_streak_default))
-        val lastDate = sharedPref.getLong(getString(R.string.last_day_meditated_key),resources.getInteger(R.integer.last_day_meditated_default).toLong())
+    private fun daysFromLastSession() : Int {
+        val sharedPref =  this.getPreferences(Context.MODE_PRIVATE)
 
 
+        val lastDate : Long = sharedPref.getLong(getString(R.string.last_day_meditated_key),resources.getInteger(R.integer.last_day_meditated_default).toLong())
         val currentDate =  Calendar.getInstance().timeInMillis
+        val lastDateFormated= simpleHourFormater.format(lastDate - (startOfDayTime * 60 * 60)).split("-")
+        val currentDateFormated = simpleHourFormater.format(currentDate).split("-")
+        val daysFromLastSession = currentDateFormated[1].toInt() - lastDateFormated!![1].toInt()
+
+        return daysFromLastSession
+    }
+
+
+    private fun addStats(timeMeditatedInMilliseconds: Long) {
+        val sharedPref =  this.getPreferences(Context.MODE_PRIVATE)
+        val currentStreak = sharedPref.getInt(getString(R.string.current_streak_key),resources.getInteger(R.integer.current_streak_default))
+
 
 
         val sharedPrefEditor = sharedPref.edit()
@@ -65,33 +97,76 @@ class MainActivity : AppCompatActivity() {
         val tMeditatedUntilNow = sharedPref.getLong(getString(R.string.time_meditated_key),resources.getInteger(R.integer.time_meditated_default).toLong())
         sharedPrefEditor.putLong(getString(R.string.time_meditated_key),(tMeditatedUntilNow+timeMeditatedInMilliseconds))
 
-
-
-
-
-        var simpleHourFormater = SimpleDateFormat("yy-mm-dd-hh")
-
-        val lastDateFormated = simpleHourFormater.format(lastDate).split("-")
+        val lastDate : Long = sharedPref.getLong(getString(R.string.last_day_meditated_key),resources.getInteger(R.integer.last_day_meditated_default).toLong())
+        val currentDate =  Calendar.getInstance().timeInMillis
+        val lastDateFormated= simpleHourFormater.format(lastDate - (startOfDayTime * 60 * 60)).split("-")
         val currentDateFormated = simpleHourFormater.format(currentDate).split("-")
+        val daysFromLastSession = currentDateFormated[1].toInt() - lastDateFormated!![1].toInt()
 
-        val yearGE = currentDateFormated[0].toInt() >= lastDateFormated[0].toInt()
-        val monthGE = currentDateFormated[1].toInt() >= lastDateFormated[1].toInt()
-        val nextDay = currentDateFormated[2].toInt() > lastDateFormated[2].toInt()
-        val hasDayBegan = currentDateFormated[3].toInt() > 6
+        val yearGE = currentDateFormated[0].toInt() > lastDateFormated[0].toInt()
+        val nextDay = currentDateFormated[1].toInt() > lastDateFormated[1].toInt()
+
+
+        val newSession = (yearGE or nextDay) and !lastDate.equals(-999.toLong())
+
 
         //Log.d(TAG,"New session: this date: $currentDateFormated lastdate: $lastDate streak: $currentStreak time meditated: $tMeditatedUntilNow")
 
-        if ((yearGE and monthGE and nextDay and hasDayBegan) or lastDate.equals(-999.toLong())) {
+        if (newSession) {
             Log.d(TAG,"New session recorded: date: $currentDateFormated streak: $currentStreak time meditated: $tMeditatedUntilNow")
-            sharedPrefEditor.putInt(getString(R.string.current_streak_key),currentStreak + 1)
+
+
+            if (daysFromLastSession < 2) {
+                sharedPrefEditor.putInt(getString(R.string.current_streak_key),currentStreak + 1)
+            } else {
+                sharedPrefEditor.putInt(getString(R.string.current_streak_key),1)
+            }
+
+
             sharedPrefEditor.putLong(getString(R.string.last_day_meditated_key), currentDate)
             showPlant(createPlant())
         }
 
         sharedPrefEditor.apply()
 
+        //showPlant(createPlant()) // add plants for testing
+
+        degradePlants(2)
+        showPlants()
+    }
+
+    private fun degradePlants(n: Int) {
+        val plantList = plantDAO!!.getAllPlants()
+        val indexiesList = arrayOfNulls<Int>(n)
+
+        if (n > plantList.size) return
+
+
+        (0 until n).forEach {
+            var newIndex =false
+            while (!newIndex) {
+                val plantIndex = rand.nextInt(plantList.size)
+                if (plantIndex !in indexiesList) {
+                    newIndex = true
+                    indexiesList[it] = plantIndex
+                }
+            }
+        }
+        Log.d(TAG, "generated indexies to degrade: ${indexiesList.joinToString()}")
+        indexiesList.forEach {
+            val plantHealth = plantList[it!!].pHealth
+            if (plantHealth > 1) {
+                plantList[it!!].pHealth  = plantList[it!!].pHealth - 1
+                plantDAO!!.updatePlant(plantList[it!!])
+            } else {
+                Log.d(TAG, "removing plantID: ${plantList[it!!].plantId}")
+                plantDAO!!.deletePlant(plantList[it!!])
+            }
+        }
+        showPlants()
 
     }
+
 
 
     private fun showPlants() {
@@ -106,7 +181,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun createPlant(): PlantModel {
         //This fun shound't do all of these things, should be split so that you can call a single function to add the plants from the database
-        val rand = Random()
+
 
         val pType = rand.nextInt(PlantModel.pTypes.size)
 
