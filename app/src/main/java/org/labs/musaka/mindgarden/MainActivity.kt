@@ -3,12 +3,13 @@ package org.labs.musaka.mindgarden
 import android.annotation.SuppressLint
 import android.arch.persistence.room.Room
 import android.content.Context
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.CountDownTimer
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
-import android.view.View
+import android.view.WindowManager
 import android.widget.ImageView
 import kotlinx.android.synthetic.main.activity_main.*
 import java.text.SimpleDateFormat
@@ -23,15 +24,16 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
     private var isTimerRunning = false
 
     private val rand = Random()
-    private var prepTimer: CountDownTimer? = null
-    private var countDownTimer: CountDownTimer? = null
+    private lateinit var prepTimer: CountDownTimer
+    private lateinit var countDownTimer: CountDownTimer
     private var timeLeftInMilliSeconds: Long = 0
-    private var plantDAO: PlantDAO? = null
+    private lateinit var plantDAO: PlantDAO
     private var plantdatabase = Room.databaseBuilder(
             this,
             PlantDatabase::class.java,
             "plantDatabase")
 
+    private lateinit var audioManager: AudioManager
 
 
     @SuppressLint("PrivateResource")
@@ -47,7 +49,7 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
 
 
         plantDAO = plantdatabase.allowMainThreadQueries().fallbackToDestructiveMigration().build().plantDao()
-
+        audioManager = getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager
 
         val daysFromLastSession = daysFromLastSession()
 
@@ -69,6 +71,7 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
 
 
 
+
     }
 
 
@@ -80,9 +83,7 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
         val currentDate =  Calendar.getInstance().timeInMillis
         val lastDateFormated= simpleHourFormater.format(lastDate - (startOfDayTime * 60 * 60)).split("-")
         val currentDateFormated = simpleHourFormater.format(currentDate).split("-")
-        val daysFromLastSession = currentDateFormated[1].toInt() - lastDateFormated!![1].toInt()
-
-        return daysFromLastSession
+        return currentDateFormated[1].toInt() - lastDateFormated[1].toInt()
     }
 
 
@@ -101,13 +102,13 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
         val currentDate =  Calendar.getInstance().timeInMillis
         val lastDateFormated= simpleHourFormater.format(lastDate - (startOfDayTime * 60 * 60)).split("-")
         val currentDateFormated = simpleHourFormater.format(currentDate).split("-")
-        val daysFromLastSession = currentDateFormated[1].toInt() - lastDateFormated!![1].toInt()
+        val daysFromLastSession = currentDateFormated[1].toInt() - lastDateFormated[1].toInt()
 
         val yearGE = currentDateFormated[0].toInt() > lastDateFormated[0].toInt()
         val nextDay = currentDateFormated[1].toInt() > lastDateFormated[1].toInt()
 
 
-        val newSession = (yearGE or nextDay) and !lastDate.equals(-999.toLong())
+        val newSession = (yearGE or nextDay) or (lastDate == 99.toLong())
 
 
         //Log.d(TAG,"New session: this date: $currentDateFormated lastdate: $lastDate streak: $currentStreak time meditated: $tMeditatedUntilNow")
@@ -129,38 +130,29 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
 
         sharedPrefEditor.apply()
 
-        //showPlant(createPlant()) // add plants for testing
 
-        degradePlants(2)
-        showPlants()
     }
 
     private fun degradePlants(n: Int) {
-        val plantList = plantDAO!!.getAllPlants()
-        val indexiesList = arrayOfNulls<Int>(n)
+        val plantList = plantDAO.getAllPlants()
+        val indexiesSet = emptySet<Int>().toMutableSet()
+        val degradatoinCount = if (n > plantList.size) (plantList.size - 1)  else n
 
-        if (n > plantList.size) return
 
-
-        (0 until n).forEach {
-            var newIndex =false
-            while (!newIndex) {
-                val plantIndex = rand.nextInt(plantList.size)
-                if (plantIndex !in indexiesList) {
-                    newIndex = true
-                    indexiesList[it] = plantIndex
-                }
-            }
+        (0 until degradatoinCount).forEach {
+            val plantIndex = rand.nextInt(plantList.size)
+            indexiesSet.add(plantIndex)
         }
-        Log.d(TAG, "generated indexies to degrade: ${indexiesList.joinToString()}")
-        indexiesList.forEach {
-            val plantHealth = plantList[it!!].pHealth
+
+        Log.d(TAG, "generated indexies to degrade: ${indexiesSet.joinToString()}")
+        indexiesSet.forEach {
+            val plantHealth = plantList[it].pHealth
             if (plantHealth > 1) {
-                plantList[it!!].pHealth  = plantList[it!!].pHealth - 1
-                plantDAO!!.updatePlant(plantList[it!!])
+                plantList[it].pHealth  = plantList[it].pHealth - 1
+                plantDAO.updatePlant(plantList[it])
             } else {
-                Log.d(TAG, "removing plantID: ${plantList[it!!].plantId}")
-                plantDAO!!.deletePlant(plantList[it!!])
+                val plantDeltedReturnID = plantDAO.deletePlant(plantList[it])
+                Log.d(TAG, "removing plantID: ${plantList[it].plantId} return value: $plantDeltedReturnID")
             }
         }
         showPlants()
@@ -170,14 +162,19 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
 
 
     private fun showPlants() {
-        val plantList = plantDAO!!.getAllPlants()
-
+        cl_garden.removeAllViews()
+        val plantList = plantDAO.getAllPlants()
+        Log.d(TAG, "showing plants: ${plantList.joinToString()}")
         for (plant in plantList) {
             showPlant(plant)
 
         }
 
     }
+
+
+
+
 
     private fun createPlant(): PlantModel {
         //This fun shound't do all of these things, should be split so that you can call a single function to add the plants from the database
@@ -194,9 +191,9 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
 
         val newPlant = PlantModel(pType = pType,pWidth = pWidth,pHeight = pHeight,xPos = xi,yPos = yi)
 
-        plantDAO?.insertPlant(newPlant)
+        plantDAO.insertPlant(newPlant)
 
-        Log.d(TAG,"Coordinates chosen: Xi: ${newPlant.xPos} Topi: ${newPlant.yPos}")
+        Log.d(TAG,"Plant coordinates chosen: Xi: ${newPlant.xPos} Topi: ${newPlant.yPos}")
 
         return newPlant
     }
@@ -207,8 +204,12 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
 
         val params = android.support.constraint.ConstraintLayout.LayoutParams(plantModel.pWidth, plantModel.pHeight)
 
-        testImageView.id = View.generateViewId()
-        testImageView.setImageResource(R.mipmap.flower)
+        testImageView.id = plantModel.plantId.toInt()
+
+        //Todo the images are square and look bad on my phone, this has to change
+        val flowerImages = listOf(R.mipmap.flower_h1,R.mipmap.flower_h2,R.mipmap.flower_h3)
+
+        testImageView.setImageResource(flowerImages[plantModel.pHealth - 1])
         testImageView.layoutParams = params
         testImageView.x = plantModel.xPos.toFloat()
         testImageView.y = plantModel.yPos.toFloat()
@@ -221,10 +222,17 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
 
 
     private fun toggleTimer() {
-        if (isTimerRunning) {
-            pauseTimer()
-        } else {
-            startTimer()
+        if (np_time_setter.value != 0) {
+            if (isTimerRunning) {
+                pauseTimer()
+            } else {
+//                if (audioManager.ringerMode != AudioManager.RINGER_MODE_VIBRATE) {
+//                    audioManager.ringerMode = AudioManager.RINGER_MODE_VIBRATE
+//                }
+                //Todo make the ringer mode toggle function, we need a permission for it or something
+                window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                startTimer()
+            }
         }
     }
 
@@ -248,6 +256,11 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
             }
 
             override fun onFinish() {
+//                if (audioManager.ringerMode != AudioManager.RINGER_MODE_NORMAL) {
+//                    audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
+//                }
+                //Todo make the ringer mode toggle function, we need a permission for it or something
+                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 addStats(userTimeInMilliseconds)
                 np_time_setter!!.value = 0
                 button_start!!.text = getString(R.string.str_begin)
@@ -264,7 +277,7 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
 
             override fun onFinish() {
                 button_start!!.text = getString(R.string.str_pause)
-                (countDownTimer as CountDownTimer).start()
+                countDownTimer.start()
                 mediaPlayerStart.start()
             }
 
@@ -276,8 +289,8 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
     private fun pauseTimer() {
         button_start!!.text = getString(R.string.str_begin)
         isTimerRunning = false
-        prepTimer!!.cancel()
-        countDownTimer!!.cancel()
+        prepTimer.cancel()
+        countDownTimer.cancel()
     }
 
     companion object {
