@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animation-list xmlns:android="http://schemas.android.com/apk/res/android"
+    android:oneshot="true">
+
+    <item
+        android:drawable="@drawable/dying_plant_1"
+        android:duration="@integer/animation_frame_duration"
+        />
+
+    <item
+        android:drawable="@drawable/dying_plant_2"
+        android:duration="@integer/animation_frame_duration"
+        />
+
+    <item
+        android:drawable="@drawable/dying_plant_3"
+        android:duration="@integer/animation_frame_duration"
+        />
+
+    <item
+        android:drawable="@drawable/dying_plant_4"
+        android:duration="@integer/animation_frame_duration"
+        />
+
+    <item
+        android:drawable="@drawable/dying_plant_5"
+        android:duration="@integer/animation_frame_duration"
+        />
+
+    <item
+        android:drawable="@drawable/dying_plant_6"
+        android:duration="@integer/animation_frame_duration"
+        />
+
+    <item
+        android:drawable="@drawable/dying_plant_7"
+        android:duration="@integer/animation_frame_duration"
+        />
+
+    <item
+        android:drawable="@drawable/dying_plant_8"
+        android:duration="@integer/animation_frame_duration"
+        />
+
+    <item
+        android:drawable="@drawable/dying_plant_9"
+        android:duration="@integer/animation_frame_duration"
+        />
+
+
+</animation-list>

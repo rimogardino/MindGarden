@@ -12,19 +12,18 @@
         android:id="@+id/cl_garden"
         android:layout_width="match_parent"
         android:layout_height="320dp"
-
-
-        android:background="@android:color/holo_blue_light">
+        android:background="#488fa9"
+>
 
 
         <ImageView
             android:id="@+id/iv_grass_background"
 
             android:layout_width="0dp"
-            android:layout_height="100dp"
+            android:layout_height="wrap_content"
             android:adjustViewBounds="true"
             android:scaleType="centerCrop"
-            android:src="@mipmap/ic_launcher_grass_foreground"
+            android:src="@drawable/app_background_lawn"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent" />

@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import android.arch.persistence.room.Room
 import android.content.Context
 import android.content.SharedPreferences
-import android.graphics.Color
+import android.graphics.drawable.AnimationDrawable
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Build
@@ -12,16 +12,11 @@ import android.os.CountDownTimer
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.annotation.LayoutRes
-
 import android.support.constraint.ConstraintSet
-
-import android.transition.AutoTransition
 import android.transition.ChangeBounds
 
 import android.transition.TransitionManager
 import android.util.Log
-import android.view.ViewGroup
-
 import android.view.WindowManager
 import android.widget.ImageView
 import kotlinx.android.synthetic.main.activity_main.*
@@ -90,7 +85,7 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
 
 
     private fun testFun() {
-        degradePlants(28)
+        degradePlants(8)
 
 
     }
@@ -121,7 +116,7 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
     }
 
 
-    private fun changeLayout(@LayoutRes id: Int) {
+    private fun changeLayout(@LayoutRes id: Int,amountDegradedPlants : Int = 0,amountRemovedPlants : Int = 0) {
         Log.d(TAG,"change layout")
         if (id == R.layout.activity_set_interval) {
             //Show the set interval layout
@@ -141,7 +136,19 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
             val tMeditated = sharedPref.getLong(getString(R.string.time_meditated_key),resources.getInteger(R.integer.time_meditated_default).toLong()) / (60 * 1000)
             var plantsAmount = plantDAO.getAllPlants().size
             //todo : make the string a resource
-            textView_congratulations.text = "Well done!! You have now spent $tMeditated minutes in this garden and have grown $plantsAmount plants!! \n\n Tap here to continue."
+
+            if (amountDegradedPlants == 0 && amountRemovedPlants == 0) {
+                textView_congratulations.text = "Well done!! You have now spent $tMeditated minutes in this garden and have grown $plantsAmount plants!! \n\n Tap here to continue."
+            } else {
+                textView_congratulations.text = if (amountRemovedPlants > 0 && amountDegradedPlants > 0) {
+                    "Unfortunately $amountDegradedPlants of your plants have faded and $amountRemovedPlants have died out."
+                } else if (amountRemovedPlants == 0 && amountDegradedPlants > 0) {
+                    "Unfortunately $amountDegradedPlants of your plants have faded."
+                } else {
+                    "Unfortunately $amountRemovedPlants of your plants have died out"
+                }
+            }
+
 //            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
 //                textView_congratulations.setBackgroundColor(getColor(R.color.colorPrimary))
 //                textView_congratulations
@@ -257,27 +264,47 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
 
     private fun degradePlants(n: Int) {
         var plantList = plantDAO.getAllPlants()
-        val indexiesSet = emptyList<Int>().toMutableList()
+        val degradedPlants = emptyList<PlantModel>().toMutableList()
+        val indexiesList = emptyList<Int>().toMutableList()
+        var removedPlants = 0
 
 
         (0 until n).forEach {
             if (plantList.isEmpty()) return@forEach
+
             val plantIndex = rand.nextInt(plantList.size)
             val plantHealth = plantList[plantIndex].pHealth
+
+            if (plantList[plantIndex] !in degradedPlants) degradedPlants.add(plantList[plantIndex])
+
             if (plantHealth > 1) {
+
+
                 plantList[plantIndex].pHealth  = plantList[plantIndex].pHealth - 1
                 plantDAO.updatePlant(plantList[plantIndex])
+
             } else {
+                var plantEntityInLayout = cl_garden.findViewById<ImageView>(plantList[plantIndex].plantId.toInt())
+                if (plantEntityInLayout != null) {
+                    plantEntityInLayout.setBackgroundResource(R.drawable.animation_plant_dying)
+                    var dyingAnimation = plantEntityInLayout.background as AnimationDrawable
+                    dyingAnimation.start()
+                }
+
                 plantDAO.deletePlant(plantList[plantIndex])
                 Log.d(TAG, "removing plantID: ${plantList[plantIndex].plantId} current plantList.size is ${plantList.size}")
                 plantList = plantList.minus(plantList[plantIndex])
+                removedPlants++
             }
 
 
-            indexiesSet.add(plantIndex)
+            indexiesList.add(plantIndex)
         }
 
-        Log.d(TAG, "generated indexies to degrade: ${indexiesSet.joinToString()}")
+        var amountOfDegradedPlants = degradedPlants.size
+        changeLayout(R.layout.activity_congratulations,amountOfDegradedPlants,removedPlants)
+
+        Log.d(TAG, "degradedPlants: ${degradedPlants} amountOfDegradedPlants $amountOfDegradedPlants removedPlants $removedPlants")
 
         showPlants()
 
@@ -310,7 +337,7 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
         val pType = rand.nextInt(PlantModel.pTypes.size)
 
 
-        val pHeight = rand.nextInt(2010) / 10 + 100
+        val pHeight = rand.nextInt(cl_garden.height) / 10 + 100
         val pWeight = (pHeight-100)/200.0
 
         //This chooses the Y position based on how big the plant is, puts the bigger plants lower
@@ -342,16 +369,22 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
 
         testImageView.id = plantModel.plantId.toInt()
 
-        //Todo the images are square and look bad on my phone, this has to change
-        val flowerImages = listOf(R.mipmap.flower_h1,R.mipmap.flower_h2,R.mipmap.flower_h3)
+        val flowerImages = listOf(R.drawable.animation_plant_dying,R.drawable.animation_plant_growing_health_2,R.drawable.animation_plant_growing)
 
-        testImageView.setImageResource(flowerImages[plantModel.pHealth - 1])
+        testImageView.setBackgroundResource(flowerImages[plantModel.pHealth - 1])
+
+        var animationGrowing : AnimationDrawable = testImageView.background as AnimationDrawable
+
+
+
+        //testImageView.setImageResource(flowerImages[plantModel.pHealth - 1])
         testImageView.layoutParams = params
         testImageView.x = plantModel.xPos.toFloat()
         testImageView.y = plantModel.yPos.toFloat()
 
 
         cl_garden.addView(testImageView,params)
+        animationGrowing.start()
 
     }
 
@@ -406,7 +439,7 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
                 //Todo make the ringer mode toggle function, we need a permission for it or something
                 window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 addStats(userTimeInMilliseconds)
-                np_time_setter.value = 0
+                np_time_setter.value = (userTimeInMilliseconds /(60 * 1000)).toInt()
                 button_start.text = getString(R.string.str_begin)
                 isTimerRunning = false
                 mediaPlayerEnd.start()
