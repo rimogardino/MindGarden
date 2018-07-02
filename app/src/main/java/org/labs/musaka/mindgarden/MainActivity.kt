@@ -17,6 +17,7 @@ import android.transition.ChangeBounds
 
 import android.transition.TransitionManager
 import android.util.Log
+import android.view.Window
 import android.view.WindowManager
 import android.widget.ImageView
 import kotlinx.android.synthetic.main.activity_main.*
@@ -28,16 +29,17 @@ import java.util.*
 
 
 
-class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDateFormat("yy-DD-HH")) : AppCompatActivity() {
+class MainActivity : AppCompatActivity() {
 
     private val startOfDayTime = 6001
     private var isTimerRunning = false
-    private var repeatInterval: Int = 0
+    private var repeatInterval: Int = 4
     private var currentLayout = R.layout.activity_main
     private val rand = Random()
     private lateinit var prepTimer: CountDownTimer
     private lateinit var countDownTimer: CountDownTimer
     private var timeLeftInMilliSeconds: Long = 0
+    private var simpleHourFormater: SimpleDateFormat = SimpleDateFormat("yy-DD-HH")
     private lateinit var plantDAO: PlantDAO
     private var plantdatabase = Room.databaseBuilder(
             this,
@@ -47,60 +49,45 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
     private lateinit var audioManager: AudioManager
 
 
+    //todo apperantly I'm dividing by 0 or something, need to fix
+
     @SuppressLint("PrivateResource")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
-        setUpNumberPickers()
-        setUpClickListeners()
 
 
         plantDAO = plantdatabase.allowMainThreadQueries().fallbackToDestructiveMigration().build().plantDao()
         audioManager = getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager
         sharedPref =  this.getPreferences(Context.MODE_PRIVATE) //Initiate the shared preferences
 
-        val sharedPrefEditor = sharedPref.edit()
-
-        repeatInterval = sharedPref.getInt(getString(R.string.repeat_interval_key),R.integer.repeat_interval_default)
-        val daysFromLastSession = daysFromLastSession()
-
-        if (freshLogIn()) {
-            Log.d(TAG,"New login recorded")
-            val currentDate =  Calendar.getInstance().timeInMillis
-            Log.d(TAG,"login currentDate $currentDate")
-            sharedPrefEditor.putLong(getString(R.string.last_log_in_key),currentDate)
-            if (daysFromLastSession >= 2) {
-                sharedPrefEditor.putInt(getString(R.string.current_streak_key),1)
-                degradePlants(daysFromLastSession)
 
 
-            }
-        }
-
-        sharedPrefEditor.apply()
+        setUpNumberPickers()
+        freshLogIn()
         showPlants()
-    }
-
-
-
-    private fun testFun() {
-        degradePlants(8)
+        setUpClickListeners()
 
 
     }
 
-    private fun testFun2() {
-        showPlant(createPlant())
-    }
+
+
+
 
 
     private fun setUpNumberPickers() {
+        repeatInterval = sharedPref.getInt(getString(R.string.repeat_interval_key),R.integer.repeat_interval_default)
+
+        np_set_interval.value = repeatInterval
+        np_time_setter.value = sharedPref.getInt(getString(R.string.length_time_meditation_key),R.integer.length_time_meditation_default)
+
         np_time_setter.minValue = 0
         np_time_setter.maxValue = 40
 
         np_set_interval.minValue = 0
         np_set_interval.maxValue = 20
+        Log.d(TAG,"repeatInterval in setUpNumberPickers $repeatInterval")
     }
 
     private fun setUpClickListeners() {
@@ -109,9 +96,31 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
         textView_congratulations.setOnClickListener { changeLayout(if (currentLayout != R.layout.activity_congratulations) R.layout.activity_congratulations else R.layout.activity_main) }
 
 
-        //Todo these will be removed when shit works better
-        button_test.setOnClickListener { testFun() }
-        button_test2.setOnClickListener { testFun2() }
+        setClickAnimations()//Show an animation when one of the plants is touched
+    }
+
+
+    private fun setClickAnimations() {
+        //Show an animation when one of the plants is touched
+        val shownPlants = plantDAO.getAllPlants()
+
+        for (plant in shownPlants) {
+            cl_garden.getViewById(plant.plantId).setOnClickListener {
+                Log.d(TAG, "Plant clicked")
+                val touchAnimations = listOf(R.drawable.animation_plant_touch_health_1, R.drawable.animation_plant_touch_health_2, R.drawable.animation_plant_touch_health_3)
+
+                it.setBackgroundResource(touchAnimations[plantDAO.getPlant(it.id).pHealth - 1])
+
+                val animationTouch: AnimationDrawable = it.background as AnimationDrawable
+
+                if (animationTouch.isRunning && animationTouch.current == animationTouch.getFrame(animationTouch.numberOfFrames-1)) {
+                    animationTouch.stop()
+                    animationTouch.start()
+                } else {
+                    animationTouch.start()
+                }
+            }
+        }
 
     }
 
@@ -123,54 +132,52 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
             currentLayout = R.layout.activity_set_interval
             setLayout(id)
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                constraintLayout_main.setBackgroundColor(getColor(R.color.colorSetIntervalBackground))
-            }
-            button_set_interval.text = getString(R.string.str_set_interval)
+             button_set_interval.text = getString(R.string.str_set_interval)
 
             //Trying to update the nuberpicker to the correct position, but it is not displaying the value
             np_set_interval.value = repeatInterval
+            Log.d(TAG,"repeatInterval in activity_set_interval $repeatInterval")
         } else if (id == R.layout.activity_congratulations) {
             currentLayout = R.layout.activity_congratulations
             setLayout(id)
             val tMeditated = sharedPref.getLong(getString(R.string.time_meditated_key),resources.getInteger(R.integer.time_meditated_default).toLong()) / (60 * 1000)
-            var plantsAmount = plantDAO.getAllPlants().size
+            val plantsAmount = plantDAO.getAllPlants().size
             //todo : make the string a resource
 
-            if (amountDegradedPlants == 0 && amountRemovedPlants == 0) {
-                textView_congratulations.text = "Well done!! You have now spent $tMeditated minutes in this garden and have grown $plantsAmount plants!! \n\n Tap here to continue."
-            } else {
+            if (amountDegradedPlants == 0 && amountRemovedPlants == 0 && tMeditated > 0 && plantsAmount > 0) {
+                textView_congratulations.text = "Well done!! You have now spent $tMeditated minutes in this garden and have grown $plantsAmount" +
+                       if (plantsAmount>1) " plants!! " else " plant!! " +
+                        "\n\n Tap here to continue."
+            }  else if (amountDegradedPlants > 0 || amountRemovedPlants > 0) {
                 textView_congratulations.text = if (amountRemovedPlants > 0 && amountDegradedPlants > 0) {
-                    "Unfortunately $amountDegradedPlants of your plants have faded and $amountRemovedPlants have died out."
+                    "Unfortunately $amountDegradedPlants of your plants have faded and $amountRemovedPlants have died out.  \n\n Tap here to continue."
                 } else if (amountRemovedPlants == 0 && amountDegradedPlants > 0) {
-                    "Unfortunately $amountDegradedPlants of your plants have faded."
+                    "Unfortunately $amountDegradedPlants of your plants have faded.\n\n Tap here to continue."
                 } else {
-                    "Unfortunately $amountRemovedPlants of your plants have died out"
+                    "Unfortunately $amountRemovedPlants of your plants have died out\n\n Tap here to continue."
                 }
+            } else {
+                textView_congratulations.text = "Welcome! Stay as much as you want"
             }
 
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-//                textView_congratulations.setBackgroundColor(getColor(R.color.colorPrimary))
-//                textView_congratulations
-//            }
+
 
         } else {
             //Show the main layout and record the picked interval in the shared preferences
             currentLayout = R.layout.activity_main
             setLayout(R.layout.activity_main)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                constraintLayout_main.setBackgroundColor(getColor(R.color.colorMainBackground))
-            }
 
             button_set_interval.text = getString(R.string.str_interval)
 
             val sharedPrefEditor = sharedPref.edit()
 
-            repeatInterval = np_set_interval.value
+            repeatInterval = if (np_set_interval.value > 0) np_set_interval.value else repeatInterval
+            Log.d(TAG,"repeatInterval when recording the user value $repeatInterval")
             sharedPrefEditor.putInt(getString(R.string.repeat_interval_key),repeatInterval)
             sharedPrefEditor.apply()
         }
 
+        //setClickAnimations()
 
     }
 
@@ -189,11 +196,12 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
 
 
 
-    private fun freshLogIn() : Boolean {
+    private fun freshLogIn() {
 
+        val daysFromLastSession = daysFromLastSession()
         val lastDate : Long = sharedPref.getLong(getString(R.string.last_log_in_key),resources.getInteger(R.integer.last_log_in_default).toLong())
-        val currentDate =  Calendar.getInstance().timeInMillis
-        val lastDateFormated= simpleHourFormater.format(lastDate - (startOfDayTime * 60 * 60)).split("-")
+        val currentDate =  Calendar.getInstance().timeInMillis- (startOfDayTime * 60 * 60)//Takes in account of the starting time of the user's day, maybe
+        val lastDateFormated= simpleHourFormater.format(lastDate).split("-")
         val currentDateFormated = simpleHourFormater.format(currentDate).split("-")
         val yearGE = currentDateFormated[0].toInt() > lastDateFormated[0].toInt()
         val nextDay = currentDateFormated[1].toInt() > lastDateFormated[1].toInt()
@@ -201,8 +209,24 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
 
         val newDayLogIn = (yearGE || nextDay) || (lastDate == 99.toLong())
 
+
+        val sharedPrefEditor = sharedPref.edit()
+        Log.d(TAG,"login currentDate $currentDate lastDate: $lastDate - (startOfDayTime * 60 * 60) ${- (startOfDayTime * 60 * 60)}")
+        if (newDayLogIn) {
+            Log.d(TAG,"New login recorded")
+            val currentDate =  Calendar.getInstance().timeInMillis
+
+            sharedPrefEditor.putLong(getString(R.string.last_log_in_key),currentDate)
+            if (daysFromLastSession >= 2) {
+                sharedPrefEditor.putInt(getString(R.string.current_streak_key),1)
+                degradePlants(daysFromLastSession)
+            }
+        }
+
+        sharedPrefEditor.apply()
+
+
         Log.d(TAG,"Fresh login check currentDateFormated $currentDateFormated lastDateFormated $lastDateFormated newDayLogIn $newDayLogIn")
-        return newDayLogIn
     }
 
 
@@ -217,19 +241,17 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
 
 
     private fun addStats(timeMeditatedInMilliseconds: Long) {
-
-        val currentStreak = sharedPref.getInt(getString(R.string.current_streak_key),resources.getInteger(R.integer.current_streak_default))
-
-
-
         val sharedPrefEditor = sharedPref.edit()
 
+        val currentStreak = sharedPref.getInt(getString(R.string.current_streak_key),resources.getInteger(R.integer.current_streak_default))
         val tMeditatedUntilNow = sharedPref.getLong(getString(R.string.time_meditated_key),resources.getInteger(R.integer.time_meditated_default).toLong())
+
         sharedPrefEditor.putLong(getString(R.string.time_meditated_key),(tMeditatedUntilNow+timeMeditatedInMilliseconds))
+        sharedPrefEditor.putInt(getString(R.string.length_time_meditation_key),(timeMeditatedInMilliseconds/(1000*60)).toInt())
 
         val lastDate : Long = sharedPref.getLong(getString(R.string.last_day_meditated_key),resources.getInteger(R.integer.last_day_meditated_default).toLong())
-        val currentDate =  Calendar.getInstance().timeInMillis
-        val lastDateFormated= simpleHourFormater.format(lastDate - (startOfDayTime * 60 * 60)).split("-")
+        val currentDate =  Calendar.getInstance().timeInMillis - (startOfDayTime * 60 * 60)//Takes in account of the starting time of the user's day, maybe
+        val lastDateFormated= simpleHourFormater.format(lastDate).split("-")
         val currentDateFormated = simpleHourFormater.format(currentDate).split("-")
         val daysFromLastSession = currentDateFormated[1].toInt() - lastDateFormated[1].toInt()
 
@@ -254,7 +276,16 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
 
 
             sharedPrefEditor.putLong(getString(R.string.last_day_meditated_key), currentDate)
-            showPlant(createPlant())
+
+            val degradedPlants = plantDAO.getDegradedPlants()
+            Log.d(TAG, "degraded plants: ${degradedPlants.size}")
+
+            if (degradedPlants.isEmpty()) {
+                showPlant(createPlant())
+            } else {
+                degradedPlants[0].pHealth = PlantModel.pHealthDefault
+                plantDAO.updatePlant(degradedPlants[0])
+            }
         }
 
         sharedPrefEditor.apply()
@@ -284,13 +315,6 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
                 plantDAO.updatePlant(plantList[plantIndex])
 
             } else {
-                var plantEntityInLayout = cl_garden.findViewById<ImageView>(plantList[plantIndex].plantId.toInt())
-                if (plantEntityInLayout != null) {
-                    plantEntityInLayout.setBackgroundResource(R.drawable.animation_plant_dying)
-                    var dyingAnimation = plantEntityInLayout.background as AnimationDrawable
-                    dyingAnimation.start()
-                }
-
                 plantDAO.deletePlant(plantList[plantIndex])
                 Log.d(TAG, "removing plantID: ${plantList[plantIndex].plantId} current plantList.size is ${plantList.size}")
                 plantList = plantList.minus(plantList[plantIndex])
@@ -301,10 +325,10 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
             indexiesList.add(plantIndex)
         }
 
-        var amountOfDegradedPlants = degradedPlants.size
+        val amountOfDegradedPlants = degradedPlants.size
         changeLayout(R.layout.activity_congratulations,amountOfDegradedPlants,removedPlants)
 
-        Log.d(TAG, "degradedPlants: ${degradedPlants} amountOfDegradedPlants $amountOfDegradedPlants removedPlants $removedPlants")
+        Log.d(TAG, "degradedPlants: $degradedPlants amountOfDegradedPlants $amountOfDegradedPlants removedPlants $removedPlants")
 
         showPlants()
 
@@ -324,6 +348,8 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
 
         }
 
+        setClickAnimations()
+
     }
 
 
@@ -332,7 +358,7 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
 
     private fun createPlant(): PlantModel {
         //This fun shound't do all of these things, should be split so that you can call a single function to add the plants from the database
-
+        //todo The coordinates generator is shit, have to fix it.
 
         val pType = rand.nextInt(PlantModel.pTypes.size)
 
@@ -340,14 +366,18 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
         val pHeight = rand.nextInt(cl_garden.height) / 10 + 100
         val pWeight = (pHeight-100)/200.0
 
+
+
         //This chooses the Y position based on how big the plant is, puts the bigger plants lower
-        val yi = if (pWeight > 0.5) {
-                (rand.nextInt((cl_garden.height * (1-pWeight) * 0.5).toInt()) + (cl_garden.height * (pWeight))).toInt() - 200
-            } else {
-                rand.nextInt((cl_garden.height * (pWeight) * 0.5).toInt())
-            }
+//        val yi = if (pWeight > 0.5) {
+//                (rand.nextInt((cl_garden.height * (1-pWeight) * 0.5).toInt()) + (cl_garden.height * (pWeight))).toInt() - 200
+//            } else {
+//            Log.d(TAG,"bound must be positive: ${cl_garden.height * (pWeight) * 0.5}  args: (${cl_garden.height} * ($pWeight) * 0.5")
+//                val nextInt = if ((cl_garden.height * (pWeight) * 0.5) > 0) (cl_garden.height * (pWeight) * 0.5)  else 0.3
+//                rand.nextInt(nextInt.toInt())
+//            }
 
-
+        val yi = rand.nextInt(cl_garden.height/2) + cl_garden.height/2 - 150
         val xi = rand.nextInt(cl_garden.width - 150)
 
 
@@ -356,7 +386,7 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
 
         plantDAO.insertPlant(newPlant)
 
-        Log.d(TAG,"Plant coordinates chosen: Xi: ${newPlant.xPos} Topi: ${newPlant.yPos} pHeight $pHeight pWeight ${pWeight}")
+        Log.d(TAG,"Plant coordinates chosen: Xi: ${newPlant.xPos} Topi: ${newPlant.yPos} pHeight $pHeight pWeight $pWeight")
 
         return newPlant
     }
@@ -367,23 +397,23 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
 
         val params = android.support.constraint.ConstraintLayout.LayoutParams(plantModel.pWidth, plantModel.pHeight)
 
-        testImageView.id = plantModel.plantId.toInt()
+        testImageView.tag = "clickbleImage"
+        testImageView.id = plantModel.plantId
 
-        val flowerImages = listOf(R.drawable.animation_plant_dying,R.drawable.animation_plant_growing_health_2,R.drawable.animation_plant_growing)
+        val animations = listOf(R.drawable.animation_plant_growing_health_1,R.drawable.animation_plant_growing_health_2,R.drawable.animation_plant_growing)
 
-        testImageView.setBackgroundResource(flowerImages[plantModel.pHealth - 1])
+        testImageView.setBackgroundResource(animations[plantModel.pHealth - 1])
 
-        var animationGrowing : AnimationDrawable = testImageView.background as AnimationDrawable
+        val animationGrowing : AnimationDrawable = testImageView.background as AnimationDrawable
 
 
-
-        //testImageView.setImageResource(flowerImages[plantModel.pHealth - 1])
         testImageView.layoutParams = params
         testImageView.x = plantModel.xPos.toFloat()
         testImageView.y = plantModel.yPos.toFloat()
 
 
         cl_garden.addView(testImageView,params)
+
         animationGrowing.start()
 
     }
@@ -416,7 +446,7 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
 
         countDownTimer = object : CountDownTimer(userTimeInMilliseconds, 1000) {
             override fun onTick(millisUntilFinished: Long) {
-                val numberPickerPosition = (millisUntilFinished / 1000 / 60).toInt()
+                val numberPickerPosition = (millisUntilFinished / (1000 * 60)).toInt()
 
                 timeLeftInMilliSeconds = millisUntilFinished
 
@@ -424,7 +454,7 @@ class MainActivity(private var simpleHourFormater: SimpleDateFormat = SimpleDate
 
                 //Repeat interval magic is happning here
                 val repeatIntervalInLong = (repeatInterval*60*1000)
-
+                Log.d(TAG,"repeatInterval in long $repeatIntervalInLong")
                 if (millisUntilFinished.toInt() % repeatIntervalInLong < 1000) {
                     Log.d(TAG,"repeatInterval on millisUntilFinished $millisUntilFinished")
                     mediaPlayerEnd.start()

@@ -4,6 +4,6 @@
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
     <color name="colorMainBackground">#2a6e2d</color>
-    <color name="colorSetIntervalBackground">#518754</color>
+    <color name="colorSetIntervalBackground">#2a6e2d</color>
     <color name="colorDarkText">#000000</color>
 </resources>

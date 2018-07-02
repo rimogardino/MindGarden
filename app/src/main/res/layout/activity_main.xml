@@ -34,8 +34,8 @@
 
     <TextView
         android:id="@+id/textView4"
-        android:layout_width="117dp"
-        android:layout_height="33dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
 
         android:layout_marginBottom="8dp"
         android:layout_marginEnd="8dp"
@@ -67,7 +67,7 @@
 
     <TextView
         android:id="@+id/textView3"
-        android:layout_width="140dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:layout_marginEnd="8dp"
@@ -84,8 +84,9 @@
 
     <Button
         android:id="@+id/button_test"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:alpha="0"
         android:layout_marginBottom="8dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
@@ -98,8 +99,9 @@
 
     <Button
         android:id="@+id/button_test2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:alpha="0"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:text="Button"
@@ -154,7 +156,7 @@
         android:id="@+id/textview_every"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:alpha="0"
+
         android:gravity="center"
         android:text="Every:"
         android:textSize="25sp"
@@ -169,7 +171,7 @@
         android:id="@+id/np_set_interval"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:alpha="0"
+
         android:clickable="false"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -181,7 +183,7 @@
         android:id="@+id/textView_minutes_interval"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:alpha="0"
+
         android:gravity="center"
         android:text="minutes"
         android:textSize="25sp"
@@ -195,7 +197,7 @@
         android:id="@+id/textView_congratulations"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:alpha="0"
+
         android:gravity="center"
         android:text="@string/str_congratulations"
         android:textColor="@color/colorDarkText"

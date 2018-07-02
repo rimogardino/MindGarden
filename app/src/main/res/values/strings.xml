@@ -6,6 +6,8 @@
     <string name="str_set_interval">Set interval</string>
     <string name="str_congratulations">Congratulations!!</string>
 
+    <string name="length_time_meditation_key">length_time_meditation_key</string>
+    <integer name="length_time_meditation_default">8</integer>
 
     <string name="time_meditated_key">time_meditated_key</string>
     <integer name="time_meditated_default">0</integer>
@@ -20,8 +22,10 @@
     <integer name="last_log_in_default">99</integer>
 
     <string name="repeat_interval_key">repeat_interval_key</string>
-    <integer name="repeat_interval_default">0</integer>
+    <integer name="repeat_interval_default">20</integer>
 
 
-    <integer name="animation_frame_duration">50</integer>
+    <integer name="animation_frame_duration">70</integer>
+    <integer name="animation_frame_duration_long">100</integer>
+    <integer name="animation_frame_duration_extralong">100</integer>
 </resources>

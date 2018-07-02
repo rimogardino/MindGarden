@@ -15,6 +15,12 @@ interface PlantDAO {
     @Query ("SELECT * FROM tb_almanac")
     fun getAllPlants(): List<PlantModel>
 
+    @Query ("SELECT * FROM tb_almanac WHERE plantId = :plantID")
+    fun getPlant(plantID: Int): PlantModel
+
+    @Query ("SELECT * FROM tb_almanac WHERE pHealth IS NOT 3 ")
+    fun getDegradedPlants(): List<PlantModel>
+
     @Update ()
     fun updatePlant(plantModel: PlantModel) : Int
 

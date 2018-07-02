@@ -9,6 +9,6 @@ android:shape="rectangle" >
     android:top="7dp"
     android:right="7dp"
      />
-<corners  android:topLeftRadius="280dp" android:topRightRadius="280dp" />
-<size android:height="40dp" android:width="130dp"/>
+<corners  android:topLeftRadius="80dp" android:topRightRadius="80dp" />
+<size android:height="280dp" android:width="630dp"/>
 </shape>

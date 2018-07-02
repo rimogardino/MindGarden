@@ -13,10 +13,9 @@
         />
 
     <item
-        android:drawable="@drawable/growing_plant_3"
+        android:drawable="@drawable/dying_plant_9"
         android:duration="@integer/animation_frame_duration_long"
         />
-
 
     <item
         android:drawable="@drawable/dying_plant_8"
@@ -27,22 +26,5 @@
         android:drawable="@drawable/dying_plant_7"
         android:duration="@integer/animation_frame_duration_long"
         />
-
-    <item
-        android:drawable="@drawable/dying_plant_6"
-        android:duration="@integer/animation_frame_duration_long"
-        />
-
-    <item
-        android:drawable="@drawable/dying_plant_5"
-        android:duration="@integer/animation_frame_duration_long"
-        />
-
-
-    <item
-        android:drawable="@drawable/dying_plant_4"
-        android:duration="@integer/animation_frame_duration_long"
-        />
-
 
 </animation-list>

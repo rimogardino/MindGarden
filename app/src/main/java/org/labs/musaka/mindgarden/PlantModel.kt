@@ -6,25 +6,25 @@ import android.arch.persistence.room.PrimaryKey
 @Entity (tableName = "tb_almanac")
 data class PlantModel (
 
-                       var pType: Int,
+                       var pType: Int = pTypeDefault,
                        var pLifeStage: Int = pLifeStageDefault,
                        var pHealth: Int = pHealthDefault,
                        var pWidth: Int,
                        var pHeight: Int,
                        var xPos: Int,
                        var yPos: Int,
-                       @PrimaryKey( autoGenerate = true ) var plantId: Long = 0
+                       @PrimaryKey( autoGenerate = true ) var plantId: Int = 0
         ) {
 
 
     companion object {
-        final val pHealthDefault = 3
-        final val pHealthStates = arrayOf(0,1,2,3)
-        final val pLifeStageDefault = 0
-        final val pLifeStages = arrayOf(0,1,2)
+        const val pHealthDefault = 3
+        val pHealthStates = arrayOf(0,1,2,3)
+        const val pLifeStageDefault = 0
+        val pLifeStages = arrayOf(0,1,2)
 
-        final val pTypeDefault = 0
-        final val pTypes = arrayOf(0,1,2,3)
+        const val pTypeDefault = 0
+        val pTypes = arrayOf(0,1,2,3)
     }
 
 
