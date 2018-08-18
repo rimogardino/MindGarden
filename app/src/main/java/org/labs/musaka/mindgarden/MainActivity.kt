@@ -457,7 +457,7 @@ class MainActivity : AppCompatActivity() {
                 Log.d(TAG,"repeatInterval in long $repeatIntervalInLong")
                 if (millisUntilFinished.toInt() % repeatIntervalInLong < 1000) {
                     Log.d(TAG,"repeatInterval on millisUntilFinished $millisUntilFinished")
-                    mediaPlayerEnd.start()
+                    mediaPlayerStart.start()
                 }
 
             }

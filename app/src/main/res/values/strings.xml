@@ -10,7 +10,7 @@
     <integer name="length_time_meditation_default">8</integer>
 
     <string name="time_meditated_key">time_meditated_key</string>
-    <integer name="time_meditated_default">0</integer>
+    <integer name="time_meditated_default">8</integer>
 
     <string name="current_streak_key">current_streak_key</string>
     <integer name="current_streak_default">0</integer>
