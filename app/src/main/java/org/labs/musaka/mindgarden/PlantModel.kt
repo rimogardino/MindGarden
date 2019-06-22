@@ -1,9 +1,10 @@
 package org.labs.musaka.mindgarden
 
-import android.arch.persistence.room.Entity
-import android.arch.persistence.room.PrimaryKey
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 
-@Entity (tableName = "tb_almanac")
+
+@Entity(tableName = "tb_almanac")
 data class PlantModel (
 
                        var pType: Int = pTypeDefault,

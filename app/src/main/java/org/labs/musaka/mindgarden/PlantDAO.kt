@@ -1,6 +1,6 @@
 package org.labs.musaka.mindgarden
 
-import android.arch.persistence.room.*
+import androidx.room.*
 
 
 @Dao

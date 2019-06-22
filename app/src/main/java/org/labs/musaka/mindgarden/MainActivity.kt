@@ -1,32 +1,31 @@
 package org.labs.musaka.mindgarden
 
+
+
 import android.annotation.SuppressLint
-import android.arch.persistence.room.Room
 import android.content.Context
 import android.content.SharedPreferences
 import android.graphics.drawable.AnimationDrawable
 import android.media.AudioManager
 import android.media.MediaPlayer
-import android.os.Build
-import android.os.CountDownTimer
-import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
-import android.support.annotation.LayoutRes
-import android.support.constraint.ConstraintSet
+import android.os.CountDownTimer
 import android.transition.ChangeBounds
-
 import android.transition.TransitionManager
 import android.util.Log
-import android.view.Window
 import android.view.WindowManager
 import android.widget.ImageView
+import androidx.annotation.LayoutRes
+import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.constraintlayout.widget.ConstraintSet
+import androidx.room.Room
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import kotlinx.android.synthetic.main.activity_main.*
-
-
 import java.text.SimpleDateFormat
-
 import java.util.*
-
+import java.util.concurrent.TimeUnit
 
 
 class MainActivity : AppCompatActivity() {
@@ -64,11 +63,11 @@ class MainActivity : AppCompatActivity() {
 
 
         setUpNumberPickers()
-        freshLogIn()
+        freshLogIn(sharedPref, simpleHourFormater, applicationContext)
         showPlants()
         setUpClickListeners()
 
-
+        scheduleWorkManagerNotifications()
     }
 
 
@@ -125,7 +124,31 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    private fun changeLayout(@LayoutRes id: Int,amountDegradedPlants : Int = 0,amountRemovedPlants : Int = 0) {
+    private fun getCongratulationText(amountDegradedPlants : Int = 0,amountRemovedPlants : Int = 0) : String {
+        //todo : make the string a resource
+
+        val tMeditated = sharedPref.getLong(getString(R.string.time_meditated_key),resources.getInteger(R.integer.time_meditated_default).toLong()) / (60 * 1000)
+        val plantsAmount = plantDAO.getAllPlants().size
+        var congrats = "Welcome! Stay as much as you want"
+
+        if (amountDegradedPlants == 0 && amountRemovedPlants == 0 && tMeditated > 0 && plantsAmount > 0) {
+            congrats = "Well done!! You have now spent $tMeditated minutes in this garden and have grown $plantsAmount ${if (plantsAmount>1) " plants!! " else " plant!! "} " +
+                    "\n\n Tap here to continue."
+        }  else if (amountDegradedPlants > 0 || amountRemovedPlants > 0) {
+            congrats = if (amountRemovedPlants > 0 && amountDegradedPlants > 0) {
+                "Unfortunately $amountDegradedPlants of your plants have faded and $amountRemovedPlants have died out.  \n\n Tap here to continue."
+            } else if (amountRemovedPlants == 0 && amountDegradedPlants > 0) {
+                "Unfortunately $amountDegradedPlants of your plants have faded.\n\n Tap here to continue."
+            } else {
+                "Unfortunately $amountRemovedPlants of your plants have died out\n\n Tap here to continue."
+            }
+        }
+
+        return congrats
+    }
+
+
+    private fun changeLayout(@LayoutRes id: Int, amountDegradedPlants : Int = 0, amountRemovedPlants : Int = 0) {
         Log.d(TAG,"change layout")
         if (id == R.layout.activity_set_interval) {
             //Show the set interval layout
@@ -140,28 +163,8 @@ class MainActivity : AppCompatActivity() {
         } else if (id == R.layout.activity_congratulations) {
             currentLayout = R.layout.activity_congratulations
             setLayout(id)
-            val tMeditated = sharedPref.getLong(getString(R.string.time_meditated_key),resources.getInteger(R.integer.time_meditated_default).toLong()) / (60 * 1000)
-            val plantsAmount = plantDAO.getAllPlants().size
-            //todo : make the string a resource
 
-            if (amountDegradedPlants == 0 && amountRemovedPlants == 0 && tMeditated > 0 && plantsAmount > 0) {
-                textView_congratulations.text = "Well done!! You have now spent $tMeditated minutes in this garden and have grown $plantsAmount" +
-                       if (plantsAmount>1) " plants!! " else " plant!! " +
-                        "\n\n Tap here to continue."
-            }  else if (amountDegradedPlants > 0 || amountRemovedPlants > 0) {
-                textView_congratulations.text = if (amountRemovedPlants > 0 && amountDegradedPlants > 0) {
-                    "Unfortunately $amountDegradedPlants of your plants have faded and $amountRemovedPlants have died out.  \n\n Tap here to continue."
-                } else if (amountRemovedPlants == 0 && amountDegradedPlants > 0) {
-                    "Unfortunately $amountDegradedPlants of your plants have faded.\n\n Tap here to continue."
-                } else {
-                    "Unfortunately $amountRemovedPlants of your plants have died out\n\n Tap here to continue."
-                }
-            } else {
-                textView_congratulations.text = "Welcome! Stay as much as you want"
-            }
-
-
-
+            textView_congratulations.text = getCongratulationText(amountDegradedPlants,amountRemovedPlants)
         } else {
             //Show the main layout and record the picked interval in the shared preferences
             currentLayout = R.layout.activity_main
@@ -177,8 +180,7 @@ class MainActivity : AppCompatActivity() {
             sharedPrefEditor.apply()
         }
 
-        //setClickAnimations()
-
+        setClickAnimations()
     }
 
     private fun setLayout(@LayoutRes id: Int) {
@@ -196,51 +198,12 @@ class MainActivity : AppCompatActivity() {
 
 
 
-    private fun freshLogIn() {
-
-        val daysFromLastSession = daysFromLastSession()
-        val lastDate : Long = sharedPref.getLong(getString(R.string.last_log_in_key),resources.getInteger(R.integer.last_log_in_default).toLong())
-        val currentDate =  Calendar.getInstance().timeInMillis- (startOfDayTime * 60 * 60)//Takes in account of the starting time of the user's day, maybe
-        val lastDateFormated= simpleHourFormater.format(lastDate).split("-")
-        val currentDateFormated = simpleHourFormater.format(currentDate).split("-")
-        val yearGE = currentDateFormated[0].toInt() > lastDateFormated[0].toInt()
-        val nextDay = currentDateFormated[1].toInt() > lastDateFormated[1].toInt()
-
-
-        val newDayLogIn = (yearGE || nextDay) || (lastDate == 99.toLong())
-
-
-        val sharedPrefEditor = sharedPref.edit()
-        Log.d(TAG,"login currentDate $currentDate lastDate: $lastDate - (startOfDayTime * 60 * 60) ${- (startOfDayTime * 60 * 60)}")
-        if (newDayLogIn) {
-            Log.d(TAG,"New login recorded")
-            val currentDate =  Calendar.getInstance().timeInMillis
-
-            sharedPrefEditor.putLong(getString(R.string.last_log_in_key),currentDate)
-            if (daysFromLastSession >= 2) {
-                sharedPrefEditor.putInt(getString(R.string.current_streak_key),1)
-                degradePlants(daysFromLastSession)
-            }
-        }
-
-        sharedPrefEditor.apply()
-
-
-        Log.d(TAG,"Fresh login check currentDateFormated $currentDateFormated lastDateFormated $lastDateFormated newDayLogIn $newDayLogIn")
-    }
-
-
-    private fun daysFromLastSession() : Int {
-
-        val lastDate : Long = sharedPref.getLong(getString(R.string.last_day_meditated_key),resources.getInteger(R.integer.last_day_meditated_default).toLong())
-        val currentDate =  Calendar.getInstance().timeInMillis
-        val lastDateFormated= simpleHourFormater.format(lastDate - (startOfDayTime * 60 * 60)).split("-")
-        val currentDateFormated = simpleHourFormater.format(currentDate).split("-")
-        return currentDateFormated[1].toInt() - lastDateFormated[1].toInt()
-    }
-
 
     private fun addStats(timeMeditatedInMilliseconds: Long) {
+        //For testing, may add for real something easier to achieve
+        createPlant()
+
+
         val sharedPrefEditor = sharedPref.edit()
 
         val currentStreak = sharedPref.getInt(getString(R.string.current_streak_key),resources.getInteger(R.integer.current_streak_default))
@@ -265,7 +228,7 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG,"New session: $newSession this date: $currentDateFormated lastdate: $lastDate streak: $currentStreak time meditated: $tMeditatedUntilNow")
 
         if (newSession) {
-
+            showPlant(createPlant())
 
 
             if (daysFromLastSession < 2) {
@@ -281,13 +244,13 @@ class MainActivity : AppCompatActivity() {
             Log.d(TAG, "degraded plants: ${degradedPlants.size}")
 
             if (degradedPlants.isEmpty()) {
-                showPlant(createPlant())
+
             } else {
                 degradedPlants[0].pHealth = PlantModel.pHealthDefault
                 plantDAO.updatePlant(degradedPlants[0])
             }
         }
-
+        showPlants()// makes the new plants be clickable, but also shows the animation of growing every time
         sharedPrefEditor.apply()
 
 
@@ -395,7 +358,7 @@ class MainActivity : AppCompatActivity() {
     private fun showPlant(plantModel: PlantModel) {
         val testImageView = ImageView(this)
 
-        val params = android.support.constraint.ConstraintLayout.LayoutParams(plantModel.pWidth, plantModel.pHeight)
+        val params = ConstraintLayout.LayoutParams(plantModel.pWidth, plantModel.pHeight)
 
         testImageView.tag = "clickbleImage"
         testImageView.id = plantModel.plantId
@@ -417,6 +380,14 @@ class MainActivity : AppCompatActivity() {
         animationGrowing.start()
 
     }
+
+    private fun scheduleWorkManagerNotifications() {
+        val periodicNotificationRequest = PeriodicWorkRequestBuilder<NotifyWorker>(3,TimeUnit.MINUTES)
+                .build()
+
+        WorkManager.getInstance().enqueue(periodicNotificationRequest)
+    }
+
 
 
 
@@ -508,3 +479,49 @@ class MainActivity : AppCompatActivity() {
 
 
 }
+
+
+
+/*moved in a new file
+    private fun freshLogIn() {
+
+        val daysFromLastSession = daysFromLastSession()
+        val lastDate : Long = sharedPref.getLong(getString(R.string.last_log_in_key),resources.getInteger(R.integer.last_log_in_default).toLong())
+        val currentDate =  Calendar.getInstance().timeInMillis- (startOfDayTime * 60 * 60)//Takes in account of the starting time of the user's day, maybe
+        val lastDateFormated= simpleHourFormater.format(lastDate).split("-")
+        val currentDateFormated = simpleHourFormater.format(currentDate).split("-")
+        val yearGE = currentDateFormated[0].toInt() > lastDateFormated[0].toInt()
+        val nextDay = currentDateFormated[1].toInt() > lastDateFormated[1].toInt()
+
+
+        val newDayLogIn = (yearGE || nextDay) || (lastDate == 99.toLong())
+
+
+        val sharedPrefEditor = sharedPref.edit()
+        Log.d(TAG,"login currentDate $currentDate lastDate: $lastDate - (startOfDayTime * 60 * 60) ${- (startOfDayTime * 60 * 60)}")
+        if (newDayLogIn) {
+            Log.d(TAG,"New login recorded")
+            val currentDate =  Calendar.getInstance().timeInMillis
+
+            sharedPrefEditor.putLong(getString(R.string.last_log_in_key),currentDate)
+            if (daysFromLastSession >= 2) {
+                sharedPrefEditor.putInt(getString(R.string.current_streak_key),1)
+                degradePlants(daysFromLastSession)
+            }
+        }
+
+        sharedPrefEditor.apply()
+
+
+        Log.d(TAG,"Fresh login check currentDateFormated $currentDateFormated lastDateFormated $lastDateFormated newDayLogIn $newDayLogIn")
+    }
+
+
+    private fun daysFromLastSession() : Int {
+
+        val lastDate : Long = sharedPref.getLong(getString(R.string.last_day_meditated_key),resources.getInteger(R.integer.last_day_meditated_default).toLong())
+        val currentDate =  Calendar.getInstance().timeInMillis
+        val lastDateFormated= simpleHourFormater.format(lastDate - (startOfDayTime * 60 * 60)).split("-")
+        val currentDateFormated = simpleHourFormater.format(currentDate).split("-")
+        return currentDateFormated[1].toInt() - lastDateFormated[1].toInt()
+    }*/
