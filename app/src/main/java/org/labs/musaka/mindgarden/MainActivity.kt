@@ -188,7 +188,8 @@ class MainActivity : AppCompatActivity() {
         constraint.load(this,id)
 
         val transition = ChangeBounds()
-        transition.duration = 700
+        transition.duration = 1000
+
 
 
         TransitionManager.beginDelayedTransition(constraintLayout_main,transition)
@@ -382,10 +383,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun scheduleWorkManagerNotifications() {
-        val periodicNotificationRequest = PeriodicWorkRequestBuilder<NotifyWorker>(3,TimeUnit.MINUTES)
+        val periodicNotificationRequest = PeriodicWorkRequestBuilder<NotifyWorker>(24,TimeUnit.HOURS)
                 .build()
 
-        WorkManager.getInstance().enqueue(periodicNotificationRequest)
+        WorkManager.getInstance()
+                .enqueue(periodicNotificationRequest)
     }
 
 

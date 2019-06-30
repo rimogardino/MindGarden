@@ -3,6 +3,7 @@ package org.labs.musaka.mindgarden
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 
@@ -35,5 +36,11 @@ class NotifyWorker(private val context: Context, workerParams: WorkerParameters)
 
 
         NotificationManagerCompat.from(context).notify(0, builder)
+
+        Log.d(TAG, "Making a notification");
+    }
+
+    companion object {
+        const val TAG = "NotifyWorker"
     }
 }

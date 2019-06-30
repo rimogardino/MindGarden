@@ -5,14 +5,24 @@
     android:id="@+id/constraintLayout_main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:layout_margin="0dp"
+    android:layout_marginLeft="0dp"
+    android:layout_marginEnd="0dp"
+    android:layout_marginRight="0dp"
     android:background="@drawable/app_background_main"
+    android:paddingStart="0dp"
+    android:paddingLeft="0dp"
+    android:paddingTop="0dp"
+    android:paddingEnd="0dp"
+    android:paddingRight="0dp"
+    android:paddingBottom="0dp"
     tools:layout_editor_absoluteY="81dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/cl_garden"
         android:layout_width="match_parent"
         android:layout_height="320dp"
-        android:background="#488fa9"
+        android:background="#03A9F4"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -25,6 +35,7 @@
             android:layout_height="wrap_content"
             android:adjustViewBounds="true"
             android:scaleType="centerCrop"
+
             android:src="@drawable/app_background_lawn"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -164,7 +175,7 @@
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        android:layout_marginBottom="200dp"/>
 
 
     <NumberPicker
@@ -175,7 +186,7 @@
         android:clickable="false"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        android:layout_marginBottom="200dp" />
 
 
     <TextView
@@ -189,7 +200,7 @@
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        android:layout_marginBottom="200dp" />
 
     <TextView
         android:id="@+id/textView_congratulations"
@@ -204,6 +215,7 @@
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        android:layout_marginBottom="200dp"
+        />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
