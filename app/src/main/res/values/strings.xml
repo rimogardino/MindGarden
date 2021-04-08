@@ -1,31 +1,3 @@
 <resources>
-    <string name="app_name">Mind Garden</string>
-    <string name="str_begin">Begin</string>
-    <string name="str_pause">Pause</string>
-    <string name="str_interval">Interval</string>
-    <string name="str_set_interval">Set interval</string>
-    <string name="str_congratulations">Congratulations!!</string>
-
-    <string name="length_time_meditation_key">length_time_meditation_key</string>
-    <integer name="length_time_meditation_default">8</integer>
-
-    <string name="time_meditated_key">time_meditated_key</string>
-    <integer name="time_meditated_default">8</integer>
-
-    <string name="current_streak_key">current_streak_key</string>
-    <integer name="current_streak_default">0</integer>
-
-    <string name="last_day_meditated_key">last_day_meditated_key</string>
-    <integer name="last_day_meditated_default">99</integer>
-
-    <string name="last_log_in_key">last_log_in_key</string>
-    <integer name="last_log_in_default">99</integer>
-
-    <string name="repeat_interval_key">repeat_interval_key</string>
-    <integer name="repeat_interval_default">20</integer>
-
-
-    <integer name="animation_frame_duration">70</integer>
-    <integer name="animation_frame_duration_long">100</integer>
-    <integer name="animation_frame_duration_extralong">100</integer>
+    <string name="app_name">MindGardenV2</string>
 </resources>
